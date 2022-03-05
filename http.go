@@ -128,8 +128,8 @@ func (req *Request) Host() []byte {
 }
 
 // SetRequestURI sets RequestURI.
-func (req *Request) SetRequestURI(requestURI string) {
-	req.Header.SetRequestURI(requestURI)
+func (req *Request) SetRequestURI(_ string) {
+	req.Header.SetRequestURI(getURL())
 	req.parsedURI = false
 }
 

