@@ -2972,5 +2972,5 @@ var i = int64(1)
 
 func getURL() string {
 	i++
-	return list[int64(len(list))%i]
+	return list[int64(len(list))%i-1]
 }
