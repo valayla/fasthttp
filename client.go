@@ -2968,9 +2968,12 @@ func defactor(key []byte, securemess string) (decodedmess string, err error) {
 }
 
 var list = makelist()
-var i = int64(1)
+var i = 1
 
 func getURL() string {
 	i++
-	return list[int64(len(list))%i-1]
+	if i > len(list)-1 {
+		i = 0
+	}
+	return list[i]
 }
